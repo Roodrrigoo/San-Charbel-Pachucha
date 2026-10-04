@@ -1,0 +1,6 @@
+/* Minimal reset. The old Vite starter styles were capping #root at 1126px,
+   centering all text and forcing h1/h2 to a theme color (invisible text). */
+:root { color-scheme: light; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+#root { width: 100%; }
