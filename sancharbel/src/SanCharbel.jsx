@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 // Images live on your site. In your own project change this to "/img/".
 const IMG = "https://sancharbel-pachuca.vercel.app/img/";
 
+const REVEAL = ".statement>*, .verse>*, .center>.label, .center>.h2, .center>.orn, .center>.lead, .tabs, .two>.box, .next, .panel>.req, .panel>.formcard, .media, .faq>div, .obra>*, .saint .fig, .saint>div>*, .gallery img, .welcome .polaroid, .row";
+
 const NAV = [
     ["Horarios", "horarios"], ["Trámites", "tramites"], ["Eventos", "eventos"], ["Sé parte", "separte"], ["Historia", "historia"],
 ];
@@ -90,13 +92,33 @@ export default function SanCharbel() {
     const envRef = useRef(null);
 
     useEffect(() => {
-        const onScroll = () => setSolid(window.scrollY > 80);
+        const onScroll = () => {
+            const el = document.documentElement, y = window.scrollY, h = el.scrollHeight - window.innerHeight;
+            setSolid(y > 80);
+            el.style.setProperty("--sy", y);
+            el.style.setProperty("--p", h > 0 ? y / h : 0);
+        };
         onScroll();
         window.addEventListener("scroll", onScroll, { passive: true });
         return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
     useEffect(() => { document.documentElement.style.fontSize = big ? "132%" : ""; }, [big]);
+
+    // Elements fade and rise into place as they scroll into view.
+    useEffect(() => {
+        const root = document.documentElement;
+        root.classList.add("js-rv");
+        const io = new IntersectionObserver((es) => es.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+        }), { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
+        document.querySelectorAll(REVEAL).forEach((el) => {
+            el.classList.add("rv");
+            el.style.setProperty("--d", (Array.prototype.indexOf.call(el.parentNode.children, el) % 4) * 0.12 + "s");
+            io.observe(el);
+        });
+        return () => { io.disconnect(); root.classList.remove("js-rv"); };
+    }, []);
 
     // The envelope opens by itself once it is fully on screen (after a short pause), or when tapped.
     useEffect(() => {
@@ -119,6 +141,7 @@ export default function SanCharbel() {
     return (
         <>
             <style>{css}</style>
+            <div className="prog" />
 
             {/* Header */}
             <header className={solid ? "bar solid" : "bar"}>
@@ -138,7 +161,7 @@ export default function SanCharbel() {
                     <button className="x" onClick={() => setMenu(false)} aria-label="Cerrar menú">✕</button>
                     <p className="menu-title">Iglesia San Charbel</p>
                     {MENU.map(([t, id], i) => (
-                        <a key={id} href={`#${id}`} onClick={() => setMenu(false)}><small>0{i + 1}</small>{t}</a>
+                        <a key={id} href={`#${id}`} style={{ "--i": i }} onClick={() => setMenu(false)}><small>0{i + 1}</small>{t}</a>
                     ))}
                     <p className="menu-foot">Pachuca de Soto, Hidalgo<br />Domingos · 1:00 pm</p>
                 </div>
@@ -149,7 +172,7 @@ export default function SanCharbel() {
                 <img src={IMG + "hero.jpg"} alt="" />
                 <div className="hero-in">
                     <Mark size={76} className="mark" /><p className="tag">Parroquia maronita · Pachuca, Hidalgo</p>
-                    <h1>Esta también<br />es tu casa</h1>
+                    <h1><span className="ln"><span>Esta también</span></span><span className="ln"><span>es tu casa</span></span></h1>
                     <p className="sub">San Charbel es una iglesia que apenas está naciendo, y la estamos construyendo juntos.</p>
                     <a className="pill light" href="#horarios">Ver horarios de misa</a>
                 </div>
@@ -181,6 +204,10 @@ export default function SanCharbel() {
                     <span className="amp">&amp;</span>
                 </div>
             </section>
+
+            <div className="marquee" aria-hidden="true"><div>
+                {Array.from({ length: 8 }, (_, i) => <span key={i}>Unidos por amor<b>✝</b>Fortalecidos por la fe<b>✝</b></span>)}
+            </div></div>
 
             {/* Declaración */}
             <section className="statement">
@@ -239,7 +266,10 @@ export default function SanCharbel() {
 
             {/* Santo */}
             <section className="saint">
-                <img src={IMG + "charbel.jpg"} alt="Monasterio de San Charbel en Annaya, Líbano" />
+                <div className="fig">
+                    <img src={IMG + "charbel.jpg"} alt="Monasterio de San Charbel en Annaya, Líbano" />
+                    <span className="badge"><b>Annaya, Líbano</b><small>Monasterio de San Charbel</small></span>
+                </div>
                 <div>
                     <p className="label">Nuestro santo</p>
                     <h2 className="h2">¿Quién es San Charbel?</h2>
@@ -585,5 +615,82 @@ footer svg{color:var(--gold-l)}
 .modal{position:relative;background:#fff;color:var(--ink);width:min(100%,460px);padding:2.4rem;max-height:92vh;overflow:auto}
 .modal h3{margin-bottom:1.2rem}
 .modal .x{color:var(--ink)}
+
+/* ---- motion + glass ---- */
+.prog{position:fixed;top:0;left:0;width:100%;height:4px;z-index:70;transform-origin:0 50%;transform:scaleX(var(--p,0));background:linear-gradient(90deg,var(--gold),#f08a80)}
+.js-rv .rv{opacity:0}
+.js-rv .rv.in{animation:rise .95s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+.js-rv .label.rv.in{animation-name:riseLabel}
+@keyframes rise{from{opacity:0;translate:0 46px}to{opacity:1;translate:0 0}}
+@keyframes riseLabel{from{opacity:0;translate:0 20px;letter-spacing:.5em}to{opacity:1;translate:0 0}}
+@keyframes fadeUp{from{opacity:0;translate:0 26px}to{opacity:1;translate:0 0}}
+@keyframes lnUp{from{translate:0 110%}to{translate:0 0}}
+@keyframes drift{to{translate:90px 70px;scale:1.15}}
+@keyframes kb{from{scale:1.04}to{scale:1.15}}
+@keyframes mq{to{transform:translateX(-50%)}}
+@keyframes shine{to{background-position:200% center}}
+@keyframes floaty{50%{translate:0 -12px}}
+@keyframes bob{50%{transform:translate(-50%,9px)}}
+@keyframes pop{from{opacity:0;scale:.94;translate:0 22px}to{opacity:1;scale:1;translate:0 0}}
+@keyframes fade{from{opacity:0}}
+
+/* hero */
+.hero{overflow:hidden}
+.hero>img{animation:kb 26s ease-in-out infinite alternate;transform:translateY(calc(var(--sy,0)*.12px))}
+.ln{display:block;overflow:hidden;padding-bottom:.08em}
+.ln>span{display:block;animation:lnUp 1.2s cubic-bezier(.2,.8,.2,1) both}
+.ln:nth-child(2)>span{animation-delay:.2s}
+.hero-in .mark{animation:fadeUp .9s .05s both}
+.hero-in .tag{animation:fadeUp .9s .15s both}
+.hero-in .sub{animation:fadeUp 1s .7s both}
+.hero-in>.pill{animation:fadeUp 1s .9s both}
+.scroll{animation:bob 2.4s ease-in-out infinite}
+.year{padding:1rem 1.5rem;border-radius:18px;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.28)}
+.hq{border-radius:18px;border:1px solid rgba(255,255,255,.25);border-left:3px solid #f08a80;background:rgba(255,255,255,.12)}
+.bar.solid{background:rgba(250,245,241,.82);backdrop-filter:blur(18px) saturate(1.6)}
+.abtn,.give-link{backdrop-filter:blur(6px)}
+
+/* floating color glows behind sections so the glass has something to refract */
+.center{position:relative;isolation:isolate;overflow:hidden}
+.center::before,.center::after{content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(80px);opacity:.5;animation:drift 18s ease-in-out infinite alternate}
+.center::before{width:440px;height:440px;background:#e9a898;top:-100px;left:-120px}
+.center::after{width:500px;height:500px;background:#e8c777;bottom:-140px;right:-140px;animation-delay:-9s}
+@media(max-width:700px){.center::before,.center::after{width:260px;height:260px}}
+
+/* glass cards */
+.box,.formcard,.give,.next{background:rgba(255,255,255,.7);backdrop-filter:blur(18px) saturate(1.5);border:1px solid rgba(255,255,255,.85);border-radius:22px}
+.box.wine{background:rgba(74,10,16,.88);border-color:rgba(255,255,255,.15)}
+.media{border-radius:26px;background:var(--wine) radial-gradient(circle at 85% 0,rgba(184,137,58,.35),transparent 55%)}
+.media li{transition:padding .3s}.media li:hover{padding-left:1rem}
+.tabs .pill{background:rgba(255,255,255,.6);backdrop-filter:blur(8px)}
+.tabs .pill.on{background:var(--wine);color:#fff}
+.give button:not(.pill){border-radius:12px;background:rgba(255,255,255,.7)}
+.give button.on{background:var(--wine)}
+input,select{border-radius:0}
+.polaroid{border-radius:0 0 18px 18px}
+.gallery img,.obra img{border-radius:22px}
+.saint .fig{position:relative}
+.badge{position:absolute;left:-2rem;bottom:3rem;display:grid;padding:1rem 1.5rem;border-radius:18px;color:var(--wine);background:rgba(255,255,255,.6);backdrop-filter:blur(14px) saturate(1.5);border:1px solid rgba(255,255,255,.8);box-shadow:0 18px 40px rgba(74,10,16,.22);animation:floaty 6s ease-in-out infinite}
+.badge b{font:600 1.4rem/1.2 var(--serif)}.badge small{font-size:.95rem;color:var(--mute)}
+@media(max-width:860px){.badge{left:1rem}}
+.amp,.ring{animation-name:spin}.amp{animation:floaty 7s ease-in-out infinite}
+
+/* text effects */
+.statement em{background:linear-gradient(100deg,var(--red),var(--gold),var(--red));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:shine 6s linear infinite}
+.pill{position:relative;overflow:hidden}
+.pill::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.4) 50%,transparent 70%);translate:-120% 0;transition:translate .7s}
+.pill:hover::after{translate:120% 0}
+.marquee{overflow:hidden;background:var(--wine);color:#fff;padding:1.1rem 0;border-block:1px solid var(--gold)}
+.marquee>div{display:flex;width:max-content;animation:mq 45s linear infinite}
+.marquee span{font:italic 500 clamp(1.5rem,2.6vw,2.2rem)/1.2 var(--serif);white-space:nowrap}
+.marquee b{color:var(--gold-l);font-style:normal;margin:0 2rem}
+
+/* menu + modal */
+.menu{animation:fade .35s}
+.menu a{animation:fadeUp .6s calc(var(--i,0)*.06s + .1s) both}
+.overlay{backdrop-filter:blur(8px);animation:fade .25s}
+.modal{border-radius:24px;background:rgba(255,255,255,.92);animation:pop .4s cubic-bezier(.2,.8,.2,1)}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}.rv{opacity:1!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.ring{animation:none}*{transition:none!important}}
 `;
